@@ -15,9 +15,14 @@ async function main(){
 
     io.on('connection', (socket) => {
         console.log('A user connected', socket.id);
+        
         socket.on('user:message', (message) => {
             console.log('Received message:', message);
             socket.broadcast.emit('server:message', message);
+        });
+
+        socket.on('user:typing', () => {
+            socket.broadcast.emit('server:typing', { userId: socket.id });
         });
     })
     

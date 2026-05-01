@@ -113,12 +113,25 @@
         .input-area button:hover {
             background: #c73e54;
         }
+
+        .typing-indicator {
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-style: italic;
+            display: none;
+        }
+
+        .typing-indicator.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">💬 WebSocket Chat</div>
         <div class="messages" id="messages">
+            <div class="typing-indicator" id="typingIndicator">Someone is typing...</div>
             <div class="message received">
                 <div class="sender">System</div>
                 Welcome to the chat! Start typing to connect.
@@ -136,6 +149,29 @@
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Emit typing event with debounce
+        const emitTyping = debounce(() => {
+            socket.emit('user:typing');
+        }, 300);
+
+        messageInput.addEventListener('input', () => {
+            emitTyping();
+        });
 
         function addMessage(text, isSent = true, sender = 'You') {
             const messageDiv = document.createElement('div');
@@ -158,6 +194,13 @@
         socket.on('server:message', (msg) => {
             addMessage(msg, false, 'Server');
             console.log('Message from server:', msg);
+        });
+
+        socket.on('server:typing', () => {
+            typingIndicator.classList.add('visible');
+            setTimeout(() => {
+                typingIndicator.classList.remove('visible');
+            }, 2000);
         });
 
         messageInput.addEventListener('keypress', (e) => {
